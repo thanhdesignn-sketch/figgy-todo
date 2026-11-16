@@ -109,11 +109,15 @@ button{border:0;background:none;cursor:pointer;padding:0}
 @keyframes pop{0%{transform:scale(.9)}100%{transform:none}}
 
 .progress{width:100%;margin-top:16px}
-.prow{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--t2);margin-bottom:8px}
+.prow{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--t2);margin-bottom:13px}
 .prow b{color:var(--t1)}
 .track{height:10px;border-radius:999px;background:rgba(0,0,0,.28);box-shadow:inset 0 1px 2px rgba(0,0,0,.4);overflow:hidden}
-.fill{height:100%;width:0;border-radius:999px;
-  background:linear-gradient(90deg,var(--matcha-dk),var(--matcha) 45%,var(--latte) 85%,var(--foam));
+.pbar{position:relative}
+.prow{transition:padding .4s}
+.progress:has(.pbar.full) .prow{padding-right:24px}
+.pfx{position:absolute;left:-30px;bottom:-14px;pointer-events:none}
+.fill{height:100%;width:0;border-radius:999px;position:relative;
+  background:linear-gradient(90deg,var(--matcha-dk),var(--matcha) 40%,var(--latte) 68%,#FFB65C 88%,#FF6A1A);
   box-shadow:0 0 12px rgba(141,174,82,.5);transition:width .6s var(--spring)}
 
 /* ---------- Danh sách ---------- */
@@ -277,7 +281,7 @@ footer{text-align:center;color:#4F4B41;font-size:11px;font-weight:700;margin-top
     <div class="bubble glass" id="bubble">Figgy đang pha matcha…</div>
     <div class="progress">
       <div class="prow"><span>Tiến độ hôm nay</span><span><b id="pDone">0</b> / <span id="pTotal">0</span></span></div>
-      <div class="track"><div class="fill" id="pFill"></div></div>
+      <div class="pbar" id="pbar"><div class="track"><div class="fill" id="pFill"></div></div><canvas class="pfx" id="pFx"></canvas></div>
     </div>
   </section>
 
@@ -686,7 +690,12 @@ function render(quiet){
 
   const total = S.tasks.length, done = S.tasks.filter(k => k.done).length;
   $("pDone").textContent = done; $("pTotal").textContent = total;
-  $("pFill").style.width = total ? (done / total * 100) + "%" : "0%";
+  const pct = total ? done / total * 100 : 0;
+  $("pFill").style.width = pct + "%";
+  $("pbar").classList.toggle("on", pct > 0);
+  $("pbar").classList.toggle("full", pct >= 100);
+  if (lastPct >= 0 && pct > lastPct + .01) setTimeout(() => { fireBoost = pct >= 100 ? 2.2 : 1; }, 250);
+  lastPct = pct;
   updateBadge(total - done);
 
   updateStreak();
@@ -781,6 +790,51 @@ $("streak").addEventListener("click", () => {
   else if (n > 0) say(`Xong hết việc hôm nay để giữ lửa ${n} ngày nha!`, true);
   else say("Xong hết việc trong ngày để nhóm ngọn lửa đầu tiên!", true);
 });
+
+/* ---------- Lửa thật ở đầu thanh tiến độ (hạt sáng) ---------- */
+let lastPct = -1, fireBoost = 0;
+(function fire(){
+  const cv = $("pFx"), pbar = $("pbar"), ctx = cv.getContext("2d"), DPR = Math.min(2, devicePixelRatio || 1);
+  let W = 0, H = 70, shown = 0, last = performance.now(); const ps = [];
+  const size = () => { W = pbar.clientWidth + 60; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + "px"; cv.style.height = H + "px"; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); };
+  size(); addEventListener("resize", size);
+  const spawn = (x, o) => ps.push({ x: x + 30 + (Math.random() - .5) * o.spread, y: H - 19 + (Math.random() - .5) * 4,
+    vx: (Math.random() - .5) * o.vx, vy: -o.vy * (.6 + Math.random() * .8), r: o.r * (.6 + Math.random() * .7),
+    life: 0, max: o.life * (.6 + Math.random() * .7), ember: !!o.ember });
+  function frame(now){
+    const dt = Math.max(0, Math.min(.05, (now - last) / 1000)); last = now;
+    if (W !== pbar.clientWidth + 60) size();
+    const fillEl = $("pFill"), target = fillEl.getBoundingClientRect().width;
+    shown += (target - shown) * Math.min(1, dt * 10);
+    fireBoost = Math.max(0, fireBoost - dt * 1.1);
+    if (!reduce() && !document.hidden && target > 1){
+      const b = fireBoost, rate = 3 + b * 9;
+      for (let i = 0; i < rate; i++) spawn(shown - 4, { vy: 38 + b * 26, vx: 10, r: 4 + b * 1.6, life: .55 + b * .2, spread: 8 + b * 4 });
+      if (Math.random() < .08 + b * .4) spawn(shown - 2, { ember: true, vy: 50 + b * 30, vx: 22, r: 1.5, life: 1.1, spread: 6 });
+    }
+    if (ps.length || cv._dirty){
+      ctx.clearRect(0, 0, W, H); cv._dirty = ps.length > 0;
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = ps.length - 1; i >= 0; i--){
+        const p = ps[i]; p.life += dt;
+        const t = Math.max(0, p.life / p.max); if (t >= 1 || !isFinite(t)){ ps.splice(i, 1); continue; }
+        p.x += p.vx * dt + Math.sin((p.life + i) * 12) * .25; p.y += p.vy * dt; p.vy *= .995;
+        const r = Math.max(.2, p.ember ? p.r * (1 - t * .6) : p.r * (1 - t * .75)), R2 = r * (p.ember ? 1.6 : 2.2);
+        let c;
+        if (p.ember) c = `rgba(255,${180 - t * 80 | 0},${70 - t * 50 | 0},${(1 - t) * .95})`;
+        else if (t < .25) c = `rgba(255,240,200,${.55 * (1 - t)})`;
+        else if (t < .55) c = `rgba(255,${190 - (t - .25) * 220 | 0},60,${.5 * (1 - t)})`;
+        else c = `rgba(255,${90 - (t - .55) * 120 | 0},40,${.38 * (1 - t)})`;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R2);
+        g.addColorStop(0, c); g.addColorStop(1, "rgba(255,80,20,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, R2, 0, 7); ctx.fill();
+      }
+      ctx.globalCompositeOperation = "source-over";
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
 
 function addTask(text){
   const k = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, daily: mode === "daily", done: false, created: Date.now() };
