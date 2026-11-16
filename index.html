@@ -114,10 +114,14 @@ button{border:0;background:none;cursor:pointer;padding:0}
 .track{height:10px;border-radius:999px;background:rgba(0,0,0,.28);box-shadow:inset 0 1px 2px rgba(0,0,0,.4);overflow:hidden}
 .pbar{position:relative}
 .prow{transition:padding .4s}
-.progress:has(.pbar.full) .prow{padding-right:24px}
-.pfx{position:absolute;left:-30px;bottom:-14px;pointer-events:none}
+.fill::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(90deg,transparent,rgba(255,196,120,.55),transparent) no-repeat;background-size:40% 100%;
+  animation:sweep 2.2s ease-in-out infinite}
+@keyframes sweep{from{background-position:-60% 0}to{background-position:160% 0}}
+.hot{position:absolute;top:0;bottom:0;left:0;width:0;border-radius:999px;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,rgba(255,150,60,0),#FF9A3C 40%,#FFD27A)}
 .fill{height:100%;width:0;border-radius:999px;position:relative;
-  background:linear-gradient(90deg,var(--matcha-dk),var(--matcha) 40%,var(--latte) 68%,#FFB65C 88%,#FF6A1A);
+  background:linear-gradient(90deg,var(--matcha-dk),var(--matcha) 70%,var(--matcha-lt));
   box-shadow:0 0 12px rgba(141,174,82,.5);transition:width .6s var(--spring)}
 
 /* ---------- Danh sách ---------- */
@@ -281,7 +285,7 @@ footer{text-align:center;color:#4F4B41;font-size:11px;font-weight:700;margin-top
     <div class="bubble glass" id="bubble">Figgy đang pha matcha…</div>
     <div class="progress">
       <div class="prow"><span>Tiến độ hôm nay</span><span><b id="pDone">0</b> / <span id="pTotal">0</span></span></div>
-      <div class="pbar" id="pbar"><div class="track"><div class="fill" id="pFill"></div></div><canvas class="pfx" id="pFx"></canvas></div>
+      <div class="pbar" id="pbar"><div class="track"><div class="fill" id="pFill"></div><div class="hot" id="pHot"></div></div></div>
     </div>
   </section>
 
@@ -694,7 +698,11 @@ function render(quiet){
   $("pFill").style.width = pct + "%";
   $("pbar").classList.toggle("on", pct > 0);
   $("pbar").classList.toggle("full", pct >= 100);
-  if (lastPct >= 0 && pct > lastPct + .01) setTimeout(() => { fireBoost = pct >= 100 ? 2.2 : 1; }, 250);
+  if (lastPct >= 0 && pct > lastPct + .01 && !reduce()){
+    const hot = $("pHot"), w = $("pbar").clientWidth;
+    hot.style.left = (lastPct / 100 * w) + "px"; hot.style.width = ((pct - lastPct) / 100 * w) + "px";
+    hot.animate([{ opacity: 0 }, { opacity: 1, offset: .25 }, { opacity: 0 }], { duration: 1800, delay: 250, easing: "ease-out", fill: "backwards" });
+  }
   lastPct = pct;
   updateBadge(total - done);
 
@@ -791,54 +799,8 @@ $("streak").addEventListener("click", () => {
   else say("Xong hết việc trong ngày để nhóm ngọn lửa đầu tiên!", true);
 });
 
-/* ---------- Lửa thật ở đầu thanh tiến độ (hạt sáng) ---------- */
-let lastPct = -1, fireBoost = 0;
-(function fire(){
-  const cv = $("pFx"), pbar = $("pbar"), ctx = cv.getContext("2d"), DPR = Math.min(2, devicePixelRatio || 1);
-  let W = 0, H = 70, shown = 0, last = performance.now(); const ps = [];
-  const size = () => { W = pbar.clientWidth + 60; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + "px"; cv.style.height = H + "px"; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); };
-  size(); addEventListener("resize", size);
-  const spawn = (x, o) => ps.push({ x: x + 30 + (Math.random() - .5) * o.spread, y: H - 19 + (Math.random() - .5) * (o.dy || 4),
-    vx: (Math.random() - .5) * o.vx, vy: -o.vy * (.6 + Math.random() * .8), r: o.r * (.6 + Math.random() * .7),
-    life: 0, max: o.life * (.6 + Math.random() * .7), ember: !!o.ember });
-  function frame(now){
-    const dt = Math.max(0, Math.min(.05, (now - last) / 1000)); last = now;
-    if (W !== pbar.clientWidth + 60) size();
-    const fillEl = $("pFill"), target = fillEl.getBoundingClientRect().width;
-    shown += (target - shown) * Math.min(1, dt * 10);
-    fireBoost = Math.max(0, fireBoost - dt * 1.1);
-    if (!reduce() && !document.hidden && target > 1){
-      const b = fireBoost, rate = 3 + b * 9, len = Math.min(target, 34 + b * 18);
-      for (let i = 0; i < rate + 3; i++){
-        const back = Math.pow(Math.random(), 1.7) * len;
-        spawn(shown - 2 - back, { vy: 16 + 10 * (1 - back / len) + b * 14, vx: 8, r: 4.6 - 1.8 * (back / len) + b * 1.2, life: .42 + .2 * (1 - back / len) + b * .15, spread: 4, dy: 9 });
-      }
-      for (let i = 0; i < rate * .6; i++) spawn(shown - 4, { vy: 36 + b * 26, vx: 10, r: 3.6 + b * 1.6, life: .5 + b * .2, spread: 8 + b * 4, dy: 6 });
-      if (Math.random() < .08 + b * .4) spawn(shown - 2, { ember: true, vy: 50 + b * 30, vx: 22, r: 1.5, life: 1.1, spread: 6 });
-    }
-    if (ps.length || cv._dirty){
-      ctx.clearRect(0, 0, W, H); cv._dirty = ps.length > 0;
-      ctx.globalCompositeOperation = "lighter";
-      for (let i = ps.length - 1; i >= 0; i--){
-        const p = ps[i]; p.life += dt;
-        const t = Math.max(0, p.life / p.max); if (t >= 1 || !isFinite(t)){ ps.splice(i, 1); continue; }
-        p.x += p.vx * dt + Math.sin((p.life + i) * 12) * .25; p.y += p.vy * dt; p.vy *= .995;
-        const r = Math.max(.2, p.ember ? p.r * (1 - t * .6) : p.r * (1 - t * .75)), R2 = r * (p.ember ? 1.6 : 2.2);
-        let c;
-        if (p.ember) c = `rgba(255,${180 - t * 80 | 0},${70 - t * 50 | 0},${(1 - t) * .95})`;
-        else if (t < .25) c = `rgba(255,240,200,${.55 * (1 - t)})`;
-        else if (t < .55) c = `rgba(255,${190 - (t - .25) * 220 | 0},60,${.5 * (1 - t)})`;
-        else c = `rgba(255,${90 - (t - .55) * 120 | 0},40,${.38 * (1 - t)})`;
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R2);
-        g.addColorStop(0, c); g.addColorStop(1, "rgba(255,80,20,0)");
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, R2, 0, 7); ctx.fill();
-      }
-      ctx.globalCompositeOperation = "source-over";
-    }
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-})();
+/* ---------- Thanh tiến độ: sóng nhiệt ---------- */
+let lastPct = -1;
 
 function addTask(text){
   const k = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, daily: mode === "daily", done: false, created: Date.now() };
