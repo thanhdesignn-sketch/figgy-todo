@@ -138,13 +138,18 @@ li.enter{animation:liIn .5s var(--spring) both}
 @keyframes liIn{from{opacity:0;transform:translateY(14px) scale(.95)}}
 li.leave{animation:liOut .28s ease-in forwards}
 @keyframes liOut{to{opacity:0;transform:translateX(-40px) scale(.96)}}
-.delbg{position:absolute;inset:0;display:flex;justify-content:flex-end;align-items:center;padding-right:8px;
-  background:rgba(226,112,95,.16);border-radius:22px;opacity:0;transition:opacity .2s}
-li.reveal .delbg{opacity:1}
-.delbtn{height:calc(100% - 16px);min-width:72px;border-radius:16px;background:var(--danger);color:#1a0d0a;font-weight:800;font-size:14px}
-.row{display:flex;align-items:center;gap:13px;padding:15px 16px;border-radius:22px;touch-action:pan-y;
-  transition:transform .35s var(--ease)}
-.row.dragging{transition:none}
+.delbg{position:absolute;inset:0;display:flex;justify-content:flex-end;align-items:center;padding-right:4px;pointer-events:none}
+.delbtn{pointer-events:auto;height:calc(100% - 10px);width:44px;border-radius:999px;display:grid;place-items:center;color:#fff;
+  opacity:0;transform:scale(.35);transform-origin:100% 50%;will-change:width,transform,opacity;
+  background:linear-gradient(180deg,rgba(255,132,112,.9),rgba(222,84,68,.9));
+  -webkit-backdrop-filter:blur(16px) saturate(160%);backdrop-filter:blur(16px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.18),0 8px 22px rgba(226,92,75,.35)}
+.delbtn svg{transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+li.commit .delbtn{background:linear-gradient(180deg,#FF876E,#E24A38)}
+li.commit .delbtn svg{transform:scale(1.28)}
+.row{display:flex;align-items:center;gap:13px;padding:15px 16px;border-radius:22px;touch-action:pan-y;will-change:transform;
+  transition:box-shadow .25s}
+li.swiping .row{box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(255,255,255,.05),0 18px 40px rgba(0,0,0,.5)}
 .check{width:28px;height:28px;flex:none;border-radius:50%;position:relative;
   border:2px solid rgba(242,235,220,.28);background:rgba(0,0,0,.15);transition:border-color .2s}
 .check::before{content:"";position:absolute;inset:-2px;border-radius:50%;background:var(--matcha);
@@ -166,6 +171,16 @@ footer{text-align:center;color:#4F4B41;font-size:11px;font-weight:700;margin-top
 .perm span{flex:1}
 .perm button{padding:9px 14px;border-radius:999px;font-weight:800;font-size:13px;color:var(--on-matcha);
   background:linear-gradient(180deg,var(--matcha-lt),var(--matcha))}
+/* ---------- Lớp phủ đáy: mờ + blur tăng dần từ trên xuống ---------- */
+.bfade{position:fixed;left:0;right:0;bottom:0;height:calc(env(safe-area-inset-bottom) + 150px);z-index:4;pointer-events:none}
+.bfade i{position:absolute;inset:0}
+.bfade .l1{-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 30%);mask-image:linear-gradient(to bottom,transparent 0%,#000 30%)}
+.bfade .l2{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 25%,#000 60%);mask-image:linear-gradient(to bottom,transparent 25%,#000 60%)}
+.bfade .l3{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 50%,#000 85%);mask-image:linear-gradient(to bottom,transparent 50%,#000 85%)}
+.bfade .tint{background:linear-gradient(to bottom,rgba(15,16,13,0) 0%,rgba(15,16,13,.55) 55%,rgba(15,16,13,.9) 100%)}
 /* ---------- Thanh nhập (dưới) ---------- */
 .composer{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:5;
   max-width:480px;margin:0 auto;padding:8px;border-radius:999px}
@@ -281,6 +296,7 @@ footer{text-align:center;color:#4F4B41;font-size:11px;font-weight:700;margin-top
   <footer>made by Thanh.Ng</footer>
 </div>
 
+<div class="bfade" aria-hidden="true"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="tint"></i></div>
 <form class="composer glass" id="form" autocomplete="off">
   <div class="inrow">
     <input id="inp" type="text" maxlength="120" placeholder="Thêm việc lặp mỗi ngày…" enterkeyhint="done">
@@ -549,44 +565,105 @@ function buildItem(k){
   li.dataset.id = k.id;
   if (k.done) li.classList.add("done");
   if (k.id === justAdded) li.classList.add("enter");
-  li.innerHTML = `<div class="delbg"><button class="delbtn" type="button">Xoá</button></div>
+  li.innerHTML = `<div class="delbg"><button class="delbtn" type="button" aria-label="Xoá"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button></div>
     <div class="row glass"><span class="check">${checkSvg}</span><span class="txt"></span></div>`;
   li.querySelector(".txt").textContent = k.text;
   const row = li.querySelector(".row");
-  li.querySelector(".delbtn").onclick = () => removeTask(k.id, li);
+  const btn = li.querySelector(".delbtn");
+  makeSwipe(li, row, btn, () => {
+    const h = li.offsetHeight;
+    li.animate([{ height: h + "px", marginBottom: "0px", opacity: 1 }, { height: "0px", marginBottom: "-10px", opacity: 0 }],
+      { duration: 280, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }).onfinish = () => removeTask(k.id, li, true);
+  }, () => toggle(k.id, li));
+  return li;
+}
 
-  // vuốt để xoá
-  let sx = 0, sy = 0, dx = 0, drag = false, lock = null, base = 0;
+/* ---------- Vuốt để xoá: vật lý kiểu iOS ---------- */
+const OPEN = 80;
+function makeSwipe(li, row, btn, onDelete, onTap){
+  let x = 0, raf = 0, W = 1, wasCommit = false;
+  const apply = (v) => {
+    x = v;
+    row.style.transform = `translate3d(${v.toFixed(2)}px,0,0)`;
+    const rev = Math.max(0, -v), commit = rev > W * .55;
+    btn.style.width = Math.max(44, rev - 10) + "px";
+    btn.style.transform = `scale(${(.35 + .65 * Math.min(1, rev / 56)).toFixed(3)})`;
+    btn.style.opacity = Math.min(1, rev / 34).toFixed(3);
+    if (commit !== wasCommit){
+      li.classList.toggle("commit", commit); wasCommit = commit;
+      if (commit && !reduce()) btn.animate([{ transform: btn.style.transform }, { transform: "scale(1.06)" }, { transform: btn.style.transform }], { duration: 260, easing: "ease-out" });
+    }
+  };
+  const springTo = (target, v0, done) => {
+    cancelAnimationFrame(raf);
+    if (reduce()){ apply(target); done && done(); return; }
+    let v = (v0 || 0) * 1000, last = performance.now();
+    const k = 420, c = 2 * Math.sqrt(k) * .74;
+    const f = (now) => {
+      const dt = Math.min(.032, (now - last) / 1000); last = now;
+      v += (-k * (x - target) - c * v) * dt;
+      apply(x + v * dt);
+      if (Math.abs(v) < 5 && Math.abs(x - target) < .4){ apply(target); done && done(); return; }
+      raf = requestAnimationFrame(f);
+    };
+    raf = requestAnimationFrame(f);
+  };
+  const flyOut = () => {
+    cancelAnimationFrame(raf);
+    W = li.offsetWidth;
+    const from = x, to = -W - 40, t0 = performance.now(), D = reduce() ? 1 : 260;
+    const f = (now) => {
+      const p = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - p, 3);
+      apply(from + (to - from) * e);
+      if (p < 1) raf = requestAnimationFrame(f); else { if (openRow === row) openRow = null; onDelete(); }
+    };
+    raf = requestAnimationFrame(f);
+  };
+  row._sw = { close: () => springTo(0, 0) };
+  btn.onclick = (e) => { e.stopPropagation(); flyOut(); };
+
+  let sx = 0, sy = 0, startX = 0, lock = null, drag = false, samples = [];
   row.addEventListener("pointerdown", (e) => {
-    sx = e.clientX; sy = e.clientY; dx = 0; drag = true; lock = null;
-    base = openRow === row ? -88 : 0;
+    if (e.button) return;
+    W = li.offsetWidth; cancelAnimationFrame(raf);
+    sx = e.clientX; sy = e.clientY; startX = x; lock = null; drag = true;
+    samples = [{ t: e.timeStamp, x: e.clientX }];
     if (openRow && openRow !== row) closeRow();
   });
   row.addEventListener("pointermove", (e) => {
     if (!drag) return;
     const mx = e.clientX - sx, my = e.clientY - sy;
-    if (lock === null && (Math.abs(mx) > 8 || Math.abs(my) > 8)) lock = Math.abs(mx) > Math.abs(my) ? "x" : "y";
+    if (lock === null && (Math.abs(mx) > 6 || Math.abs(my) > 6)){
+      lock = Math.abs(mx) > Math.abs(my) ? "x" : "y";
+      if (lock === "x"){ try { row.setPointerCapture(e.pointerId); } catch {} li.classList.add("swiping"); }
+    }
     if (lock !== "x") return;
-    dx = Math.min(0, Math.max(-130, base + mx));
-    li.classList.add("reveal"); row.classList.add("dragging"); row.style.transform = `translateX(${dx}px)`;
+    const raw = startX + mx;
+    apply(raw > 0 ? 26 * (1 - Math.exp(-raw / 70)) : raw);   // kéo sang phải: cao su
+    samples.push({ t: e.timeStamp, x: e.clientX });
+    while (samples.length > 2 && e.timeStamp - samples[0].t > 90) samples.shift();
   });
-  const end = () => {
-    if (!drag) return; drag = false; row.classList.remove("dragging");
+  const end = (e) => {
+    if (!drag) return; drag = false; li.classList.remove("swiping");
     if (lock === "x"){
-      if (dx < -120){ removeTask(k.id, li); return; }
-      if (dx < -50){ row.style.transform = "translateX(-88px)"; openRow = row; }
-      else { row.style.transform = ""; if (openRow === row) openRow = null; hideBg(li); }
+      const a = samples[0], b = samples[samples.length - 1];
+      const vel = b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0;   // px/ms, âm = sang trái
+      const rev = -x;
+      if (rev > W * .55 || (vel < -1.4 && rev > OPEN * .8)) flyOut();
+      else if (vel < -.35 || (rev > OPEN * .5 && vel < .35)){ springTo(-OPEN, vel); openRow = row; }
+      else { springTo(0, vel); if (openRow === row) openRow = null; }
     } else if (lock === null){
       if (openRow === row){ closeRow(); return; }
-      toggle(k.id, li);
+      onTap();
     }
   };
   row.addEventListener("pointerup", end);
-  row.addEventListener("pointercancel", () => { drag = false; row.classList.remove("dragging"); row.style.transform = openRow === row ? "translateX(-88px)" : ""; if (openRow !== row) hideBg(li); });
-  return li;
+  row.addEventListener("pointercancel", () => {
+    if (!drag) return; drag = false; li.classList.remove("swiping");
+    springTo(openRow === row ? -OPEN : 0, 0);
+  });
 }
-function hideBg(li){ setTimeout(() => li.classList.remove("reveal"), 300); }
-function closeRow(){ if (openRow){ openRow.style.transform = ""; hideBg(openRow.parentElement); openRow = null; } }
+function closeRow(){ if (openRow){ openRow._sw && openRow._sw.close(); openRow = null; } }
 
 function renderList(ul, items, empty){
   ul.innerHTML = "";
@@ -748,12 +825,12 @@ function toggle(id, li){
 }
 
 let undoT = 0, lastRemoved = null;
-function removeTask(id, li){
+function removeTask(id, li, instant){
   const i = S.tasks.findIndex(t => t.id === id); if (i < 0) return;
   lastRemoved = { task: S.tasks[i], index: i };
   S.tasks.splice(i, 1); commit(); openRow = null;
-  li.classList.add("leave");
-  setTimeout(() => render(true), 260);
+  if (!instant) li.classList.add("leave");
+  setTimeout(() => render(true), instant ? 0 : 260);
   droop(); say("Bye bye việc đó…", true);
   $("toastMsg").textContent = "Đã xoá 1 việc";
   $("toast").classList.add("show");
