@@ -56,8 +56,29 @@ button{border:0;background:none;cursor:pointer;padding:0}
 /* ---------- Hero / Figgy ---------- */
 .top{display:flex;justify-content:space-between;align-items:center;margin:2px 4px 10px}
 .date{font-size:13px;font-weight:700;color:var(--t2);letter-spacing:.04em;text-transform:uppercase}
-.streak{font-size:12px;font-weight:800;padding:6px 11px;border-radius:999px;color:var(--foam);display:flex;gap:6px;align-items:center}
-.streak b{color:var(--matcha-lt)}
+.streak{font-size:15px;font-weight:900;padding:6px 13px 6px 10px;border-radius:999px;color:var(--t3);display:flex;gap:5px;align-items:center;
+  transition:box-shadow .4s,color .4s}
+.streak b{display:inline-block;min-width:10px;text-align:center;font-variant-numeric:tabular-nums}
+.streak .numwrap{overflow:hidden;display:inline-flex;height:20px;align-items:center}
+.fl{width:18px;height:20px;display:block;transform-origin:50% 92%;overflow:visible}
+.fl .o{fill:#45443E;transition:fill .4s}
+.fl .i{fill:#605E55;transition:fill .4s}
+.streak.lit{color:#FFB65C;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 18px rgba(255,120,40,.35),0 14px 34px rgba(0,0,0,.38)}
+.streak.lit .fl .o,.sp-flame .o{fill:url(#flameG)}
+.streak.lit .fl .i,.sp-flame .i{fill:#FFE6A6}
+.streak.lit .fl{animation:flick 1.3s ease-in-out infinite;filter:drop-shadow(0 0 5px rgba(255,120,40,.7))}
+.streak.risk{color:var(--t2)}
+.streak.risk .fl .o{fill:#7A5A3E}
+.streak.risk .fl{animation:risk 2.2s ease-in-out infinite}
+@keyframes flick{0%,100%{transform:scale(1,1) skewX(0)}25%{transform:scale(.94,1.08) skewX(-3deg)}50%{transform:scale(1.04,.96) skewX(2deg)}75%{transform:scale(.97,1.05) skewX(-1.5deg)}}
+@keyframes risk{0%,100%{opacity:1}50%{opacity:.55}}
+.sp-scrim{position:fixed;inset:0;z-index:19;background:rgba(8,8,6,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);pointer-events:none}
+.sp{position:fixed;left:50%;top:40%;z-index:20;pointer-events:none;width:0;height:0}
+.sp-in{position:absolute;left:-110px;top:-120px;width:220px;display:flex;flex-direction:column;align-items:center}
+.sp-flame svg{width:124px;height:134px;display:block;transform-origin:50% 92%;animation:flick 1.1s ease-in-out infinite;
+  filter:drop-shadow(0 0 26px rgba(255,110,40,.65))}
+.sp-num{font-size:60px;font-weight:900;line-height:1;margin-top:-4px;color:#FFF3DC;text-shadow:0 4px 22px rgba(255,100,40,.6)}
+.sp-txt{font-size:16px;font-weight:800;color:#FFD9A8;margin-top:4px}
 
 .hero{padding:16px 18px 18px;display:flex;flex-direction:column;align-items:center}
 .figgy-zone{position:relative;width:176px;height:166px;margin-top:2px;touch-action:manipulation}
@@ -179,11 +200,14 @@ footer{text-align:center;color:#4F4B41;font-size:11px;font-weight:700;margin-top
 <body>
 <div class="bg"><div class="grid"></div></div>
 <div class="fx" id="fx"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="flameG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FF3B4E"/><stop offset=".5" stop-color="#FF7A1A"/><stop offset="1" stop-color="#FFC93C"/></linearGradient>
+</defs></svg>
 
 <div class="app">
   <div class="top">
     <div class="date" id="date"></div>
-    <div class="streak glass" id="streak" hidden>Chuỗi <b id="streakN">0</b> ngày</div>
+    <button type="button" class="streak glass" id="streak" aria-label="Chuỗi ngày"><svg class="fl" viewBox="0 0 24 26"><path class="o" d="M12 1c.6 3.5 2.9 5.3 4.6 7.3C18.5 10.4 20 12.6 20 15.6a8 8 0 0 1-16 0c0-2.6 1.1-4.6 2.7-6.1.2 1.7 1 2.9 2.2 3.5C8.6 9 10.1 4.4 12 1z"/><path class="i" d="M12 12c.35 1.8 1.5 2.7 2.3 3.8.55.7 1 1.5 1 2.5a3.3 3.3 0 0 1-6.6 0c0-1.2.55-2.2 1.3-2.9.1.8.55 1.3 1.1 1.55-.1-1.9.35-3.6.9-4.95z"/></svg><span class="numwrap"><b id="streakN">0</b></span></button>
   </div>
 
   <section class="hero glass">
@@ -571,6 +595,8 @@ function renderList(ul, items, empty){
 }
 
 function render(quiet){
+  const first = new Map();
+  document.querySelectorAll("ul li[data-id]").forEach(li => first.set(li.dataset.id, li.getBoundingClientRect().top));
   const d = new Date();
   const thu = ["Chủ nhật","Thứ hai","Thứ ba","Thứ tư","Thứ năm","Thứ sáu","Thứ bảy"][d.getDay()];
   $("date").textContent = `${thu} · ${d.getDate()} tháng ${d.getMonth()+1}`;
@@ -586,13 +612,98 @@ function render(quiet){
   $("pFill").style.width = total ? (done / total * 100) + "%" : "0%";
   updateBadge(total - done);
 
-  const st = (S.lastAllDone === dayStr() || S.lastAllDone === yesterday()) ? S.streak : 0;
-  $("streak").hidden = st < 1; $("streakN").textContent = st;
+  updateStreak();
+  flip(first);
 
   if (!svg.classList.contains("sparkle")) svg.classList.toggle("happyface", !!total && done === total);
   if (!quiet) say(statusLine());
   justAdded = null;
 }
+
+/* ---------- Đổi chỗ: trượt + nảy (FLIP) ---------- */
+function flip(first){
+  if (reduce() || !first.size) return;
+  document.querySelectorAll("ul li[data-id]").forEach(li => {
+    const f = first.get(li.dataset.id); if (f == null) return;
+    const d = f - li.getBoundingClientRect().top;
+    if (Math.abs(d) < 2) return;
+    const s = Math.sign(d);
+    li.style.zIndex = d < 0 ? 3 : 1;
+    li.animate([
+      { transform: `translateY(${d}px) scale(1)` },
+      { transform: `translateY(${d * .45}px) scale(1.035)`, offset: .4 },
+      { transform: `translateY(${-s * 7}px) scale(1)`, offset: .72 },
+      { transform: `translateY(${s * 2}px)`, offset: .88 },
+      { transform: "none" }
+    ], { duration: 620, easing: "cubic-bezier(.25,.8,.35,1)" }).onfinish = () => { li.style.zIndex = ""; };
+  });
+}
+
+/* ---------- Chuỗi lửa ---------- */
+let celebrating = false;
+function streakInfo(){
+  const today = S.lastAllDone === dayStr();
+  const alive = today || S.lastAllDone === yesterday();
+  return { today, n: alive ? (S.streak || 0) : 0 };
+}
+function updateStreak(){
+  if (celebrating) return;
+  const { today, n } = streakInfo(), chip = $("streak");
+  chip.classList.toggle("lit", today);
+  chip.classList.toggle("risk", !today && n > 0);
+  $("streakN").textContent = n;
+}
+function rollNum(el, to){
+  if (reduce()){ el.textContent = to; return; }
+  el.animate([{ transform: "none", opacity: 1 }, { transform: "translateY(-90%)", opacity: 0 }], { duration: 170, easing: "ease-in" }).onfinish = () => {
+    el.textContent = to;
+    el.animate([{ transform: "translateY(90%)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 380, easing: "cubic-bezier(.34,1.56,.64,1)" });
+  };
+}
+function celebrateStreak(n){
+  const chip = $("streak");
+  if (reduce()){ updateStreak(); return; }
+  celebrating = true;
+  const scrim = document.createElement("div"); scrim.className = "sp-scrim";
+  const sp = document.createElement("div"); sp.className = "sp";
+  sp.innerHTML = `<div class="sp-in"><div class="sp-flame">${chip.querySelector(".fl").outerHTML}</div><div class="sp-num">${Math.max(0, n - 1)}</div><div class="sp-txt">ngày liên tiếp!</div></div>`;
+  document.body.append(scrim, sp);
+  const inner = sp.firstChild, num = sp.querySelector(".sp-num");
+  scrim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "forwards" });
+  inner.animate([
+    { transform: "scale(.2) rotate(-12deg)", opacity: 0 },
+    { transform: "scale(1.15) rotate(4deg)", opacity: 1, offset: .6 },
+    { transform: "scale(1) rotate(0)", opacity: 1 }
+  ], { duration: 560, easing: "cubic-bezier(.3,1.4,.5,1)", fill: "forwards" });
+  setTimeout(() => {
+    rollNum(num, n);
+    const r = num.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2, ["#FFC93C", "#FF7A1A", "#FF3B4E", "#FFE6A6"], 14);
+  }, 520);
+  setTimeout(() => {
+    const a = inner.getBoundingClientRect(), b = chip.getBoundingClientRect();
+    const dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height * .3);
+    scrim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, fill: "forwards" });
+    inner.animate([
+      { transform: "none", opacity: 1 },
+      { transform: `translate(${dx}px,${dy}px) scale(.14)`, opacity: .6 }
+    ], { duration: 520, easing: "cubic-bezier(.55,0,.7,.6)", fill: "forwards" }).onfinish = () => {
+      sp.remove(); scrim.remove(); celebrating = false;
+      chip.classList.add("lit"); chip.classList.remove("risk");
+      rollNum($("streakN"), n);
+      chip.animate([{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }], { duration: 480, easing: "cubic-bezier(.34,1.56,.64,1)" });
+      const [x, y] = center(chip); burst(x, y, ["#FFC93C", "#FF7A1A", "#FFE6A6"], 10);
+    };
+  }, 1900);
+}
+$("streak").addEventListener("click", () => {
+  const { today, n } = streakInfo();
+  const fl = $("streak").querySelector(".fl");
+  if (!reduce()) fl.animate([{ transform: "scale(1)" }, { transform: "scale(1.35) rotate(-8deg)" }, { transform: "scale(1)" }], { duration: 450, easing: "cubic-bezier(.34,1.56,.64,1)" });
+  if (today) say(`Chuỗi ${n} ngày, lửa đang cháy rực!`, true);
+  else if (n > 0) say(`Xong hết việc hôm nay để giữ lửa ${n} ngày nha!`, true);
+  else say("Xong hết việc trong ngày để nhóm ngọn lửa đầu tiên!", true);
+});
 
 function addTask(text){
   const k = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, daily: mode === "daily", done: false, created: Date.now() };
@@ -613,12 +724,15 @@ function toggle(id, li){
     burst(x, y, ["#8DAE52", "#B4CC84", "#EFE4D0", "#C9A882"], 10);
     lookAt(x, y, 1400);
     if (done === total){
+      let gained = false;
       if (S.lastAllDone !== dayStr()){
         S.streak = S.lastAllDone === yesterday() ? (S.streak || 0) + 1 : 1;
-        S.lastAllDone = dayStr();
+        S.lastAllDone = dayStr(); gained = true;
       }
       commit();
+      if (gained) celebrating = true;
       setTimeout(() => { render(true); jump(true); perk(); confetti(); twinkles(); face("sparkle", 2000); say(statusLine()); }, 380);
+      if (gained) setTimeout(() => { celebrating = false; celebrateStreak(S.streak); }, 1500);
       return;
     }
     commit();
