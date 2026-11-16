@@ -798,7 +798,7 @@ let lastPct = -1, fireBoost = 0;
   let W = 0, H = 70, shown = 0, last = performance.now(); const ps = [];
   const size = () => { W = pbar.clientWidth + 60; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + "px"; cv.style.height = H + "px"; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); };
   size(); addEventListener("resize", size);
-  const spawn = (x, o) => ps.push({ x: x + 30 + (Math.random() - .5) * o.spread, y: H - 19 + (Math.random() - .5) * 4,
+  const spawn = (x, o) => ps.push({ x: x + 30 + (Math.random() - .5) * o.spread, y: H - 19 + (Math.random() - .5) * (o.dy || 4),
     vx: (Math.random() - .5) * o.vx, vy: -o.vy * (.6 + Math.random() * .8), r: o.r * (.6 + Math.random() * .7),
     life: 0, max: o.life * (.6 + Math.random() * .7), ember: !!o.ember });
   function frame(now){
@@ -808,8 +808,12 @@ let lastPct = -1, fireBoost = 0;
     shown += (target - shown) * Math.min(1, dt * 10);
     fireBoost = Math.max(0, fireBoost - dt * 1.1);
     if (!reduce() && !document.hidden && target > 1){
-      const b = fireBoost, rate = 3 + b * 9;
-      for (let i = 0; i < rate; i++) spawn(shown - 4, { vy: 38 + b * 26, vx: 10, r: 4 + b * 1.6, life: .55 + b * .2, spread: 8 + b * 4 });
+      const b = fireBoost, rate = 3 + b * 9, len = Math.min(target, 34 + b * 18);
+      for (let i = 0; i < rate + 3; i++){
+        const back = Math.pow(Math.random(), 1.7) * len;
+        spawn(shown - 2 - back, { vy: 16 + 10 * (1 - back / len) + b * 14, vx: 8, r: 4.6 - 1.8 * (back / len) + b * 1.2, life: .42 + .2 * (1 - back / len) + b * .15, spread: 4, dy: 9 });
+      }
+      for (let i = 0; i < rate * .6; i++) spawn(shown - 4, { vy: 36 + b * 26, vx: 10, r: 3.6 + b * 1.6, life: .5 + b * .2, spread: 8 + b * 4, dy: 6 });
       if (Math.random() < .08 + b * .4) spawn(shown - 2, { ember: true, vy: 50 + b * 30, vx: 22, r: 1.5, life: 1.1, spread: 6 });
     }
     if (ps.length || cv._dirty){
