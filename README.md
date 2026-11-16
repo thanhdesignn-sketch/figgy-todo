@@ -39,6 +39,18 @@ Không cần tài khoản, không có server: danh sách việc lưu ngay trên 
 2. Bấm nút **Share** (ô vuông mũi tên lên) → **Add to Home Screen** → bật **Open as Web App** nếu có → **Add**
 3. Mở app từ icon Figgy, bấm **Bật badge** → **Allow**
 
+## Cài lên Android
+
+1. Mở [link demo](https://thanhdesignn-sketch.github.io/figgy-todo/) bằng **Chrome**
+2. Nếu hiện thanh **Install app / Cài đặt ứng dụng** ở dưới thì bấm luôn. Không thấy thì bấm nút **⋮** (góc trên bên phải) → **Add to Home screen / Thêm vào màn hình chính** → chọn **Install / Cài đặt**
+3. Mở app từ icon Figgy trên màn hình chính hoặc trong ngăn ứng dụng
+
+Trên Samsung Internet: bấm nút **☰** → **Add page to** → **Home screen**.
+
+> Android không hỗ trợ số badge trên icon cho web app, nên phần này chỉ có trên iPhone. Mọi tính năng khác chạy như nhau.
+
+## Cập nhật
+
 App ngoài màn hình chính tự cập nhật lên bản mới mỗi khi mở có mạng. Nếu vẫn thấy bản cũ, tắt hẳn app trong màn hình đa nhiệm rồi mở lại.
 
 > Lưu ý: dữ liệu nằm trên máy. Mở trong Safari và mở từ icon là hai danh sách riêng; xoá icon hoặc đổi máy sẽ mất danh sách.
